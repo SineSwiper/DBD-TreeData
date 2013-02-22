@@ -567,10 +567,14 @@ use List::AllUtils qw(first);
 ### TODO: get_info ###
 
 sub table_info {
-   my $dbh = shift;
+   my ($dbh, $catalog, $schema, $table) = @_;
    my $names = [qw( TABLE_QUALIFIER TABLE_OWNER TABLE_NAME TABLE_TYPE REMARKS )];
 
-   return sponge_sth_loader($dbh, 'TABLE_INFO', $names, [ $dbh->func("get_avail_tables") ] );
+   $table = '^'.$table.'$' if length $table;
+
+   return sponge_sth_loader($dbh, 'TABLE_INFO', $names, [
+      grep { !$table || $_->[2] =~ /$table/i } $dbh->func("get_avail_tables")
+   ] );
 }
 
 sub column_info {
@@ -583,7 +587,10 @@ sub column_info {
       DOMAIN_CAT DOMAIN_SCHEM DOMAIN_NAME SCOPE_CAT SCOPE_SCHEM SCOPE_NAME MAX_CARDINALITY DTD_IDENTIFIER IS_SELF_REF
    )];
 
-   my @tables = ($table =~ /^\w+$/) ? [ undef, undef, $table, 'TABLE', 'AnyData' ] : $dbh->func("get_avail_tables");
+   $table  = '^'.$table .'$' if length $table;
+   $column = '^'.$column.'$' if length $column;
+
+   my @tables = $dbh->func("get_avail_tables");
    my @col_rows = ();
    my $tc = $dbh->{tree_columns};
 
@@ -594,10 +601,11 @@ sub column_info {
 
    foreach my $tbl (sort { $a->[2] cmp $b->[2] } @tables) {  # ->[2] = table name
       next unless ($tbl);
-      next unless (!$table || /$table/i ~~ $tbl);
+      next unless (!$table || $tbl->[2] =~ /$table/i);
 
       my $id = 0;
       foreach my $col ( @{$tc->{names}{$tbl->[2]}} ) {
+         next unless (!$column || $col =~ /$column/i);
          my $ti = $types{ $id ? uc($tc->{types}{$col}) : 'PID' };
          my $can_null = $id && $tc->{nulls}{$col} || 0;
 
@@ -854,6 +862,7 @@ This module can be handy to translate JSON, XML, YAML, and many other tree forma
 L<DBD::AnyData>, the format of the data doesn't have to be pre-flattened, and will be spread out into multiple tables.
 
 Also, this driver fully supports all of the C<<< *_info >>> methods, making it ideal to shove into modules like L<DBIx::Class::Schema::Loader>.
+(The C<<< table_info >>> and C<<< column_info >>> filters use REs with beginE<sol>end bounds pre-set.)
 
 =encoding utf8
 

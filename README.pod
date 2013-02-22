@@ -44,6 +44,7 @@ This module can be handy to translate JSON, XML, YAML, and many other tree forma
 L<DBD::AnyData>, the format of the data doesn't have to be pre-flattened, and will be spread out into multiple tables.
 
 Also, this driver fully supports all of the C<<< *_info >>> methods, making it ideal to shove into modules like L<DBIx::Class::Schema::Loader>.
+(The C<<< table_info >>> and C<<< column_info >>> filters use REs with beginE<sol>end bounds pre-set.)
 
 =encoding utf8
 
