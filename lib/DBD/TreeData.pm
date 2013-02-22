@@ -12,7 +12,8 @@ use sanity;
 
 use parent qw(DBD::AnyData);
 
-our $VERSION  = "0.50.00";
+# VERSION
+
 our $drh      = undef;         # holds driver handle once initialized
 our $err      = 0;             # DBI::err
 our $errstr   = "";            # DBI::errstr
