@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-use 5.010001;
+use 5.010;
 
 use ExtUtils::MakeMaker 6.30;
 
@@ -13,6 +13,7 @@ my %WriteMakefileArgs = (
   "AUTHOR" => "Brendan Byrd <BBYRD\@CPAN.org>",
   "BUILD_REQUIRES" => {
     "Test::CheckDeps" => "0.002",
+    "Test::More" => "0.88",
     "Test::UseAllModules" => "0.10"
   },
   "CONFIGURE_REQUIRES" => {},
@@ -22,14 +23,13 @@ my %WriteMakefileArgs = (
   "NAME" => "DBD::TreeData",
   "PREREQ_PM" => {
     "DBD::AnyData" => 0,
-    "DBD::AnyData::Statement" => 0,
-    "DBD::AnyData::Table" => 0,
-    "DBD::AnyData::db" => 0,
-    "DBD::AnyData::dr" => 0,
-    "DBD::AnyData::st" => 0,
     "DBI" => 0,
+    "Data::Dumper" => "2.122",
     "Lingua::EN::Inflect::Phrase" => "0.01",
     "List::MoreUtils" => "0.23",
+    "List::Util" => "1.20",
+    "Scalar::Util" => "1.20",
+    "parent" => "0.220",
     "sanity" => "0.91"
   },
   "VERSION" => "0.90",
