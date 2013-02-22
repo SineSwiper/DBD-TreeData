@@ -4,35 +4,35 @@ DBD::TreeData - DBI driver for any abstract hash/array tree
 
 =head1 SYNOPSIS
 
-   use DBI;
-   use JSON::Any;
-   use LWP::Simple;
-
-   # Example JSON object
-   my $json = get 'http://maps.googleapis.com/maps/api/geocode/json?address=1600+Pennsylvania+Ave+NW,+20500&region=us&language=en&sensor=false';
-   my $obj = JSON::Any->jsonToObj($json);
-
-   my $dbh = DBI->connect('dbi:TreeData:', '', '', {
-      tree_table_name => 'geocode',
-      tree_data       => $obj,
-   });
-
-   # Informational dump
-   use Data::Dump;
-   dd ($dbh->table_info->fetchall_arrayref);
-   dd (map { [ @{$_}[2 .. 6] ] } @{
-      $dbh->column_info('','','','')->fetchall_arrayref
-   });
-
-   # DBIC dump
-   use DBIx::Class::Schema::Loader 'make_schema_at';
-   make_schema_at(
-      'My::Schema', {
-         debug => 1,
-         dump_directory  => './lib',
-      },
-      [ 'dbi:TreeData:geocode', '', '', { tree_data => $obj } ],
-   );
+    use DBI;
+    use JSON::Any;
+    use LWP::Simple;
+ 
+    # Example JSON object
+    my $json = get 'http://maps.googleapis.com/maps/api/geocode/json?address=1600+Pennsylvania+Ave+NW,+20500&region=us&language=en&sensor=false';
+    my $obj = JSON::Any->jsonToObj($json);
+ 
+    my $dbh = DBI->connect('dbi:TreeData:', '', '', {
+       tree_table_name => 'geocode',
+       tree_data       => $obj,
+    });
+ 
+    # Informational dump
+    use Data::Dump;
+    dd ($dbh->table_info->fetchall_arrayref);
+    dd (map { [ @{$_}[2 .. 6] ] } @{
+       $dbh->column_info('','','','')->fetchall_arrayref
+    });
+ 
+    # DBIC dump
+    use DBIx::Class::Schema::Loader 'make_schema_at';
+    make_schema_at(
+       'My::Schema', {
+          debug => 1,
+          dump_directory  => './lib',
+       },
+       [ 'dbi:TreeData:geocode', '', '', { tree_data => $obj } ],
+    );
 
 =head1 DESCRIPTION
 
@@ -43,7 +43,7 @@ the SQL parsing.  (Any caveats with those modules likely applies here.)
 This module can be handy to translate JSON, XML, YAML, and many other tree formats to be used in class sets like L<DBIx::Class>.  Unlike
 L<DBD::AnyData>, the format of the data doesn't have to be pre-flattened, and will be spread out into multiple tables.
 
-Also, this driver fully supports all of the C<*_info> methods, making it ideal to shove into modules like L<DBIx::Class::Schema::Loader>.
+Also, this driver fully supports all of the C<<< *_info >>> methods, making it ideal to shove into modules like L<DBIx::Class::Schema::Loader>.
 
 =encoding utf8
 
@@ -56,7 +56,7 @@ The actual tree object.  Of course, this attribute is required.
 =head2 tree_table_name
 
 The name of the starting table.  Not required, but recommended.  If not specified, defaults to 'tree_data', or the value of the driver
-DSN string (after the C<dbi:TreeData:> part).
+DSN string (after the C<<< dbi:TreeData: >>> part).
 
 =head2 tree_debug
 
@@ -65,7 +65,7 @@ Boolean.  Print debug information while translating the tree.
 =head2 tree_rename_tables
 
 Hashref of table names.  If you don't like the name of an auto-created table, you can rename them while the database is being built.  Within
-the hashref, the keys/values are the old/new names, respectively.
+the hashref, the keysE<sol>values are the oldE<sol>new names, respectively.
 
 =head1 TRANSLATION BEHAVIOR
 
@@ -77,61 +77,61 @@ Arrays are interpreted as a list of rows, and typically get rolled up into "grou
 and values.  Non-references are considered values.  Scalar refs and VStrings are de-referenced first.  Other types of refs are processed as
 best as possible, but the driver will complain.  (Code ref blocks are currently NOT executed and discarded.)
 
-Nested arrays will create nested group tables with different suffixes, like C<matrix>, C<cube>, and C<hypercube>.  If it has to go beyond
+Nested arrays will create nested group tables with different suffixes, like C<<< matrix >>>, C<<< cube >>>, and C<<< hypercube >>>.  If it has to go beyond
 that (and you really shouldn't have structures like that), it'll start complaining (sarcastically).
 
 In almost all cases, the table name is derived from a previous key.  Table names also use L<Lingua::EN::Inflect::Phrase> to create
-pluralized names.  Primary IDs will have singular names with a C<_id> suffix.
+pluralized names.  Primary IDs will have singular names with a C<<< _id >>> suffix.
 
 For example, this tree:
 
-   address_components => [
-      {
-         long_name  => 1600,
-         short_name => 1600,
-         types      => [ "street_number" ]
-      },
-      {
-         long_name  => "President's Park",
-         short_name => "President's Park",
-         types      => [ "establishment" ]
-      },
-      {
-         long_name  => "Pennsylvania Avenue Northwest",
-         short_name => "Pennsylvania Ave NW",
-         types      => [ "route" ]
-      },
-      {
-         long_name  => "Washington",
-         short_name => "Washington",
-         types      => [ "locality", "political" ]
-      },
-      ... etc ...,
-   ],
+    address_components => [
+       {
+          long_name  => 1600,
+          short_name => 1600,
+          types      => [ "street_number" ]
+       },
+       {
+          long_name  => "President's Park",
+          short_name => "President's Park",
+          types      => [ "establishment" ]
+       },
+       {
+          long_name  => "Pennsylvania Avenue Northwest",
+          short_name => "Pennsylvania Ave NW",
+          types      => [ "route" ]
+       },
+       {
+          long_name  => "Washington",
+          short_name => "Washington",
+          types      => [ "locality", "political" ]
+       },
+       ... etc ...,
+    ],
 
 Would create the following tables:
 
-   <main_table>
-      address_component_groups
-         address_components
-            type_groups
-               types
+    <main_table>
+       address_component_groups
+          address_components
+             type_groups
+                types
 
-In this case, C<address_components> has most of the columns and data, but it also has a tie to an ID of C<address_component_groups>.
+In this case, C<<< address_components >>> has most of the columns and data, but it also has a tie to an ID of C<<< address_component_groups >>>.
 
-Since C<types> points to an array, it will have its own dedicated table.  That table would have data like:
+Since C<<< types >>> points to an array, it will have its own dedicated table.  That table would have data like:
 
-   type_id │ type
-   ════════╪════════════════
-         1 │ street_number
-         2 │ establishment
-         3 │ route
-         4 │ locality
-         5 │ political
-       ... │ ...
+    type_id │ type
+    ════════╪════════════════
+          1 │ street_number
+          2 │ establishment
+          3 │ route
+          4 │ locality
+          5 │ political
+        ... │ ...
 
-Most of the C<type_groups> table would be a 1:1 match.  However, the last component entry has more than one value in the C<types> array, so the
-C<type_group_id> associated to that component would have multiple entries (4 & 5).  Duplicate values are also tracked, so that IDs are reused.
+Most of the C<<< type_groups >>> table would be a 1:1 match.  However, the last component entry has more than one value in the C<<< types >>> array, so the
+C<<< type_group_id >>> associated to that component would have multiple entries (4 & 5).  Duplicate values are also tracked, so that IDs are reused.
 
 =head1 AVAILABILITY
 
