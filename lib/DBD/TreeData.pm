@@ -12,15 +12,15 @@ use sanity;
 
 use parent qw(DBD::AnyData);
 
-our $VERSION = '0.90'; # VERSION
+# ABSTRACT: DBI driver for any abstract hash/array tree
 
+our $VERSION = '0.90'; # VERSION
 our $drh      = undef;         # holds driver handle once initialized
 our $err      = 0;             # DBI::err
 our $errstr   = "";            # DBI::errstr
 our $sqlstate = "";            # DBI::state
 
 our $methods_already_installed = 0;
-
 
 sub driver {
    return $drh if $drh;      # already created - return same one
@@ -810,7 +810,7 @@ __END__
 
 =head1 NAME
 
-DBD::TreeData
+DBD::TreeData - DBI driver for any abstract hash/array tree
 
 =head1 SYNOPSIS
 
@@ -854,10 +854,6 @@ This module can be handy to translate JSON, XML, YAML, and many other tree forma
 L<DBD::AnyData>, the format of the data doesn't have to be pre-flattened, and will be spread out into multiple tables.
 
 Also, this driver fully supports all of the C<*_info> methods, making it ideal to shove into modules like L<DBIx::Class::Schema::Loader>.
-
-=head1 NAME
-
-DBD::TreeData - DBI driver abstraction for any abstract hash/array tree
 
 =encoding utf8
 
@@ -953,7 +949,7 @@ The project homepage is L<https://github.com/SineSwiper/DBD-TreeData/wiki>.
 
 The latest version of this module is available from the Comprehensive Perl
 Archive Network (CPAN). Visit L<http://www.perl.com/CPAN/> to find a CPAN
-site near you, or see L<https://metacpan.org/module/Acme::Web::PodDisplay/>.
+site near you, or see L<https://metacpan.org/module/DBD::TreeData/>.
 
 =for :stopwords cpan testmatrix url annocpan anno bugtracker rt cpants kwalitee diff irc mailto metadata placeholders metacpan
 
@@ -986,14 +982,11 @@ Brendan Byrd <BBYRD@CPAN.org>
 
 =head1 COPYRIGHT AND LICENSE
 
+This software is Copyright (c) 2013 by Brendan Byrd.
 
-Brendan Byrd has dedicated the work to the Commons by waiving all of his
-or her rights to the work worldwide under copyright law and all related or
-neighboring legal rights he or she had in the work, to the extent allowable by
-law.
+This is free software, licensed under:
 
-Works under CC0 do not require attribution. When citing the work, you should
-not imply endorsement by the author.
+  The Artistic License 2.0 (GPL Compatible)
 
 =cut
 

@@ -2,28 +2,36 @@
 use strict;
 use warnings;
 
-
+use 5.010001;
 
 use ExtUtils::MakeMaker 6.30;
 
 
 
 my %WriteMakefileArgs = (
-  "ABSTRACT" => "DBI driver abstraction for any abstract hash/array tree",
+  "ABSTRACT" => "DBI driver for any abstract hash/array tree",
   "AUTHOR" => "Brendan Byrd <BBYRD\@CPAN.org>",
   "BUILD_REQUIRES" => {
     "Test::CheckDeps" => "0.002",
-    "Test::More" => "0.88",
-    "Test::UseAllModules" => 0
+    "Test::UseAllModules" => "0.10"
   },
-  "CONFIGURE_REQUIRES" => {
-    "ExtUtils::MakeMaker" => "6.30"
-  },
-  "DISTNAME" => "Acme-Web-PodDisplay",
+  "CONFIGURE_REQUIRES" => {},
+  "DISTNAME" => "DBD-TreeData",
   "EXE_FILES" => [],
-  "LICENSE" => "unrestricted",
-  "NAME" => "Acme::Web::PodDisplay",
-  "PREREQ_PM" => {},
+  "LICENSE" => "artistic_2",
+  "NAME" => "DBD::TreeData",
+  "PREREQ_PM" => {
+    "DBD::AnyData" => 0,
+    "DBD::AnyData::Statement" => 0,
+    "DBD::AnyData::Table" => 0,
+    "DBD::AnyData::db" => 0,
+    "DBD::AnyData::dr" => 0,
+    "DBD::AnyData::st" => 0,
+    "DBI" => 0,
+    "Lingua::EN::Inflect::Phrase" => "0.01",
+    "List::MoreUtils" => "0.23",
+    "sanity" => "0.91"
+  },
   "VERSION" => "0.90",
   "test" => {
     "TESTS" => "t/*.t"
