@@ -8,7 +8,7 @@
 
 package DBD::TreeData;
 
-use common::sense;  # works every time!
+use sanity;
 
 use parent qw(DBD::AnyData);
 
@@ -36,9 +36,9 @@ sub driver {
       'Err'         => \$DBD::TreeData::err,
       'Errstr'      => \$DBD::TreeData::errstr,
       'State'       => \$DBD::TreeData::state,
-      'Attribution' => 'DBD::TreeData by Brendan Byrd',   
-   }) || return undef;  
-   
+      'Attribution' => 'DBD::TreeData by Brendan Byrd',
+   }) || return undef;
+
    unless ( $methods_already_installed++ ) {
       DBD::TreeData::dr->install_method('tree_process_hash_tree');
 
@@ -49,7 +49,7 @@ sub driver {
       DBD::TreeData::db->install_method('ad_export');
       DBD::TreeData::db->install_method('ad_clear');
       DBD::TreeData::db->install_method('ad_dump');
-   }   
+   }
 
    return $drh;
 }
@@ -60,13 +60,146 @@ sub CLONE {
 
 1;
 
+=encoding utf8
+
+=head1 SYNOPSIS
+
+   use DBI;
+   use JSON::Any;
+   use LWP::Simple;
+
+   # Example JSON object
+   my $json = get 'http://maps.googleapis.com/maps/api/geocode/json?address=1600+Pennsylvania+Ave+NW,+20500&region=us&language=en&sensor=false';
+   my $obj = JSON::Any->jsonToObj($json);
+
+   my $dbh = DBI->connect('dbi:TreeData:', '', '', {
+      tree_table_name => 'geocode',
+      tree_data       => $obj,
+   });
+
+   # Informational dump
+   use Data::Dump;
+   dd ($dbh->table_info->fetchall_arrayref);
+   dd (map { [ @{$_}[2 .. 6] ] } @{
+      $dbh->column_info('','','','')->fetchall_arrayref
+   });
+
+   # DBIC dump
+   use DBIx::Class::Schema::Loader 'make_schema_at';
+   make_schema_at(
+      'My::Schema', {
+         debug => 1,
+         dump_directory  => './lib',
+      },
+      [ 'dbi:TreeData:geocode', '', '', { tree_data => $obj } ],
+   );
+
+=head1 DESCRIPTION
+
+DBD::TreeData provides a DBI driver to translate any sort of tree-based data set (encapsulated in a Perl object) into a flat set of tables,
+complete with real SQL functionality.  This module utilizes L<DBD::AnyData> to create the new tables, which uses L<SQL::Statement> to support
+the SQL parsing.  (Any caveats with those modules likely applies here.)
+
+This module can be handy to translate JSON, XML, YAML, and many other tree formats to be used in class sets like L<DBIx::Class>.  Unlike
+L<DBD::AnyData>, the format of the data doesn't have to be pre-flattened, and will be spread out into multiple tables.
+
+Also, this driver fully supports all of the C<*_info> methods, making it ideal to shove into modules like L<DBIx::Class::Schema::Loader>.
+
+=head1 CONNECT ATTRIBUTES
+
+=head2 tree_data
+
+The actual tree object.  Of course, this attribute is required.
+
+=head2 tree_table_name
+
+The name of the starting table.  Not required, but recommended.  If not specified, defaults to 'tree_data', or the value of the driver
+DSN string (after the C<dbi:TreeData:> part).
+
+=head2 tree_debug
+
+Boolean.  Print debug information while translating the tree.
+
+=head2 tree_rename_tables
+
+Hashref of table names.  If you don't like the name of an auto-created table, you can rename them while the database is being built.  Within
+the hashref, the keys/values are the old/new names, respectively.
+
+=head1 TRANSLATION BEHAVIOR
+
+The tree translation into flat tables is done using a recursive descent algorithm.  It starts with a check of the current node's reference
+type, which dictates how it interprets the children.  The goal is to create a fully L<4NF|http://en.wikipedia.org/wiki/Fourth_normal_form>
+database from the tree.
+
+Arrays are interpreted as a list of rows, and typically get rolled up into "group" tables.  Hashes are interpreted as a list of column names
+and values.  Non-references are considered values.  Scalar refs and VStrings are de-referenced first.  Other types of refs are processed as
+best as possible, but the driver will complain.  (Code ref blocks are currently NOT executed and discarded.)
+
+Nested arrays will create nested group tables with different suffixes, like C<matrix>, C<cube>, and C<hypercube>.  If it has to go beyond
+that (and you really shouldn't have structures like that), it'll start complaining (sarcastically).
+
+In almost all cases, the table name is derived from a previous key.  Table names also use L<Lingua::EN::Inflect::Phrase> to create
+pluralized names.  Primary IDs will have singular names with a C<_id> suffix.
+
+For example, this tree:
+
+   address_components => [
+      {
+         long_name  => 1600,
+         short_name => 1600,
+         types      => [ "street_number" ]
+      },
+      {
+         long_name  => "President's Park",
+         short_name => "President's Park",
+         types      => [ "establishment" ]
+      },
+      {
+         long_name  => "Pennsylvania Avenue Northwest",
+         short_name => "Pennsylvania Ave NW",
+         types      => [ "route" ]
+      },
+      {
+         long_name  => "Washington",
+         short_name => "Washington",
+         types      => [ "locality", "political" ]
+      },
+      ... etc ...,
+   ],
+
+Would create the following tables:
+
+   <main_table>
+      address_component_groups
+         address_components
+            type_groups
+               types
+
+In this case, C<address_components> has most of the columns and data, but it also has a tie to an ID of C<address_component_groups>.
+
+Since C<types> points to an array, it will have its own dedicated table.  That table would have data like:
+
+   type_id │ type
+   ════════╪════════════════
+         1 │ street_number
+         2 │ establishment
+         3 │ route
+         4 │ locality
+         5 │ political
+       ... │ ...
+
+Most of the C<type_groups> table would be a 1:1 match.  However, the last component entry has more than one value in the C<types> array, so the
+C<type_group_id> associated to that component would have multiple entries (4 & 5).  Duplicate values are also tracked, so that IDs are reused.
+
+=cut
+
 ##############################################################################
 # DBD::TreeData::dr
 
 package   # hide from PAUSE
    DBD::TreeData::dr; # ====== DRIVER ======
 
-use common::sense;  # works every time!
+use sanity;
 use DBI;
 use DBD::AnyData;
 use parent qw(-norequire DBD::AnyData::dr);  # no such file as ::dr.pm
@@ -91,7 +224,7 @@ sub connect {
       foreach my $var (split /\;/, $dr_dsn) {
          my ($attr_name, $attr_value) = split(/\=/, $var, 2);
          return $drh->set_err($DBI::stderr, "Can't parse DSN part '$var'", '08001') unless (defined $attr_value);
-          
+
          $attr_name = lc($attr_name);
          $attr_name = 'tree_'.$attr_name unless ($attr_name =~ /^tree_/o);
          $attr->{$attr_name} = $attr_value;
@@ -102,7 +235,7 @@ sub connect {
    }
    $attr->{tree_table_name} ||= 'tree_data';
    $debug = $attr->{tree_debug} || $attr->{TraceLevel} || $drh->{TraceLevel};
-   
+
    # Run through the tree conversion
    $attr->{tree_data} or return $drh->set_err($DBI::stderr, "Data! Data! Data!  I cannot make bricks without clay!", '08004');
    $drh->tree_process_hash_tree($attr->{tree_table_name}, $attr->{tree_data}, 0);
@@ -122,7 +255,7 @@ sub connect {
    undef $ids;
    undef $types;
    undef $can_null;
-   
+
    # Add into our $dbh object, using AnyData's methods
    my ($outer_dbh, $dbh) = DBI::_new_dbh($drh, {
       Name => $attr->{tree_table_name},
@@ -130,14 +263,18 @@ sub connect {
    $dbh->func( 0, "init_default_attributes" );  # make sure we get all of the right sql_* vars in place
    $dbh->func("init_done");
    $dbh->STORE('Active', 1);
-   
+
+   ### TODO: Need error checking for tree_rename_tables ###
+
    foreach my $table (keys %$tref) {
-      my $table_name = $attr->{"tree_rename_$table"} || $table;
+      my $table_name = exists $attr->{'tree_rename_tables'} ?
+         ($attr->{'tree_rename_tables'}{$table} || $table) : $table;
+
       $dbh->func($table_name, 'ARRAY', [@{$tref->{$table}{data}}], {
          col_names => join(',', @{$tref->{$table}{columns}}),
       }, 'ad_import');
    }
-   
+
    # Using the DBD::AnyData $dbh for the rest of the work
    push @dbh, $dbh;
    return $outer_dbh;
@@ -189,7 +326,7 @@ sub tree_process_hash_tree ($$$;$) {
                my $id_name = $col.($suffix ? '_'.$suffix : '').'_id';
                my $tree = $serialized_tree;
                $tree =~ s/^(\W{1,2})XXXX/$1$id_name/;
-               
+
                # already exists, makes this easier
                my $id = $ids->{trees}{$tree};
                if ($id) {
@@ -240,14 +377,14 @@ sub tree_process_hash_tree ($$$;$) {
                   if (shift(@tcols) eq shift(@cols) && uniq(@cols, @tcols) < (@tcols + @cols)) {
                      my @extra_cols = notin(\@tcols, \@cols);
 
-                     # new table has extra columns to add                     
+                     # new table has extra columns to add
                      if (@extra_cols) {
                         # add new column names and resort
                         my @old_cols = @{$t->{columns}};
                         my @new_cols = ($col_id, sort(@tcols, @extra_cols));
                         my @diff_idx = grep { $old_cols[$_] ne $new_cols[$_] } (0 .. (@new_cols - 1));
                         $t->{columns} = \@new_cols;
-                        
+
                         unless ($diff_idx[0] > @{$t->{columns}}-1) {
                            # well, the new columns aren't on the end, so old data needs to be shuffled
                            for (my $l = 0; $l < @{$t->{data}}; $l++) {
@@ -257,7 +394,7 @@ sub tree_process_hash_tree ($$$;$) {
                               $t->{data}[$l] = \@data;
                            }
                         }
-                        
+
                         # remove the old column key and replace with a new one
                         delete $columns->{ join('|', @old_cols) };
                      }
@@ -266,7 +403,7 @@ sub tree_process_hash_tree ($$$;$) {
                      # however, nullability checks might be in order
                      my @missing_cols = notin(\@cols, \@tcols);
                      $can_null->{$_} = 1 for (@missing_cols, @extra_cols);
-                     
+
                      print_debug($depth+1, "HASH ===> Found known table with different columns '$table_name'");
                      last;
                   }
@@ -349,14 +486,14 @@ sub tree_process_hash_tree ($$$;$) {
             $icol = $strip;
             $icol =~ s/ /_/g;
             $icol .= '_id' if ($is_id);
-            
+
             # Process group ID names
             # ncol = N+1, icol = N (as in _group_id => _id, or _matrix_id => _group_id)
             my $ncol = $icol;
             $ncol =~ s/_id$//i;
             my $i = firstidx { $ncol =~ s/(?<=_)$_$//; } @$id_names;  # that's underscore + $_ + EOL
             # $i = -1 if not found, which then ++$i = 0 and id_names = _group
-            
+
             if (++$i > 3) {   # start whining here
                $ncol .= '_hypercube_'.$id_names->[$i -= 4];
 
@@ -417,7 +554,7 @@ sub tree_process_hash_tree ($$$;$) {
                my $col_key = join('|', @{$n->{columns}});
                $columns->{$col_key} = $itbl_name;
                $types->{$icol} = 'ID';
-               
+
                $max_id[$i-1] = $icol;
                print_debug($depth+1, "ARRAY ===> max_id = ".int($i-1)."/$icol");
                ### FIXME: Assuming that table doesn't exist with the same columns ###
@@ -532,7 +669,7 @@ sub type_detect ($;$) {
       $can_null->{$_} = 1;
       return $col => undef;
    }
-   
+
    $types->{$col}   = 'STRING' if (!$is_num && $types->{$col});  # any non-number data invalidates the NUMBER type
    $types->{$col} ||= $is_num ? 'NUMBER' : 'STRING';
    return $col => $val;
@@ -585,13 +722,13 @@ sub column_info {
    my @tables = ($table =~ /^\w+$/) ? [ undef, undef, $table, 'TABLE', 'AnyData' ] : $dbh->func("get_avail_tables");
    my @col_rows = ();
    my $tc = $dbh->{tree_columns};
-   
+
    # De-mangle types
    my $types = $dbh->type_info_all;
    shift(@$types);  # helper "column key" row
    my %types = map { $_->[0] => $_ } @$types;
 
-   foreach my $tbl (sort { $a->[2] <=> $b->[2] } @tables) {  # ->[2] = table name
+   foreach my $tbl (sort { $a->[2] cmp $b->[2] } @tables) {  # ->[2] = table name
       next unless ($tbl);
       next unless (!$table || /$table/i ~~ $tbl);
 
@@ -599,10 +736,10 @@ sub column_info {
       foreach my $col ( @{$tc->{names}{$tbl->[2]}} ) {
          my $ti = $types{ $id ? uc($tc->{types}{$col}) : 'PID' };
          my $can_null = $id && $tc->{nulls}{$col} || 0;
-         
+
          my $col_row = [
             # 0=TABLE_CAT TABLE_SCHEM TABLE_NAME COLUMN_NAME DATA_TYPE TYPE_NAME COLUMN_SIZE BUFFER_LENGTH DECIMAL_DIGITS
-            undef, undef, $tbl->[0], $col, $ti->[0], $ti->[1], $ti->[2], undef, $ti->[17] ? int($ti->[14] * log($ti->[17])/log(10)) : undef,  # log(r^l) = l * log(r)
+            undef, undef, $tbl->[2], $col, $ti->[0], $ti->[1], $ti->[2], undef, $ti->[17] ? int($ti->[14] * log($ti->[17])/log(10)) : undef,  # log(r^l) = l * log(r)
             # 9=NUM_PREC_RADIX NULLABLE REMARKS COLUMN_DEF SQL_DATA_TYPE SQL_DATETIME_SUB CHAR_OCTET_LENGTH ORDINAL_POSITION IS_NULLABLE
             $ti->[17], $can_null, undef, undef, $ti->[15], $ti->[16], $ti->[17] ? undef : $ti->[2], $id, $can_null ? 'YES' : 'NO',
             # 18=CHAR_SET_CAT CHAR_SET_SCHEM CHAR_SET_NAME COLLATION_CAT COLLATION_SCHEM COLLATION_NAME UDT_CAT UDT_SCHEM UDT_NAME
@@ -610,12 +747,12 @@ sub column_info {
             # DOMAIN_CAT DOMAIN_SCHEM DOMAIN_NAME SCOPE_CAT SCOPE_SCHEM SCOPE_NAME MAX_CARDINALITY DTD_IDENTIFIER IS_SELF_REF
             undef, undef, undef, undef, undef, undef, undef, undef, undef,
          ];
-         
+
          push @col_rows, $col_row;
          $id++;
       }
    }
-   
+
    return sponge_sth_loader($dbh, $type, $names, \@col_rows);
 }
 
@@ -627,7 +764,7 @@ sub primary_key_info {
    my $pkey = $cols->[0];
 
    return sponge_sth_loader($dbh, $type,
-      [qw(TABLE_CAT TABLE_SCHEM TABLE_NAME COLUMN_NAME KEY_SEQ PK_NAME)], 
+      [qw(TABLE_CAT TABLE_SCHEM TABLE_NAME COLUMN_NAME KEY_SEQ PK_NAME)],
       [ [ undef, undef, $table, $pkey, 1, $pkey.'_pkey' ] ]
    );
 }
@@ -645,17 +782,17 @@ sub foreign_key_info {
    my $fkey = $fk_table && $colnames->{$fk_table} ? $colnames->{$fk_table}[0] : undef;
    my ($pk_list, $fk_list) = ([$pk_table], [$fk_table]);
    my @dbi_data;
-   
+
    # If both PKT and FKT are given, the function returns the foreign key, if any,
    # in table FKT that refers to the primary (unique) key of table PKT.
    if ($pkey && $fkey) {
       $fkey = first { $_ eq $pkey } $colnames->{$fk_table};  # pkey or bust
    }
-   
+
    # If only PKT is given, then the result set contains the primary key of that table
    # and all foreign keys that refer to it.
    elsif ($pkey) { $fk_list = [ grep { $colnames->{$_} ~~ /^$pkey$/ } keys %$colnames ]; }
-   
+
    # If only FKT is given, then the result set contains all foreign keys in that table
    # and the primary keys to which they refer.
    elsif ($fkey) {
@@ -669,7 +806,7 @@ sub foreign_key_info {
       }
    }
    else { return sponge_sth_loader($dbh, $type, $names, []); }
-   
+
    # main loop
    foreach my $pt (@$pk_list) {
       foreach my $ft (@$fk_list) {
@@ -682,7 +819,7 @@ sub foreign_key_info {
          ];
       }
    }
-   
+
    return sponge_sth_loader($dbh, $type, $names, \@dbi_data);
 }
 
@@ -732,10 +869,10 @@ sub type_info_all {
    # We are basically just translating Perl variable types to SQL,
    # though once everything has been flattened, it's basically just
    # string and number.
-   
+
    # Perl's number size varies between 32/64-bit versions
    my $nbits = $Config{ptrsize} * 16 - 11;
-   
+
    return [
       {
          TYPE_NAME          => 0,
