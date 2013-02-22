@@ -12,20 +12,15 @@ use sanity;
 
 use parent qw(DBD::AnyData);
 
-# VERSION
+# ABSTRACT: DBI driver for any abstract hash/array tree
 
+# VERSION
 our $drh      = undef;         # holds driver handle once initialized
 our $err      = 0;             # DBI::err
 our $errstr   = "";            # DBI::errstr
 our $sqlstate = "";            # DBI::state
 
 our $methods_already_installed = 0;
-
-=head1 NAME
-
-DBD::TreeData - DBI driver abstraction for any abstract hash/array tree
-
-=cut
 
 sub driver {
    return $drh if $drh;      # already created - return same one
@@ -63,7 +58,9 @@ sub CLONE {
 
 =encoding utf8
 
-=head1 SYNOPSIS
+=begin wikidoc
+
+= SYNOPSIS
 
    use DBI;
    use JSON::Any;
@@ -95,52 +92,53 @@ sub CLONE {
       [ 'dbi:TreeData:geocode', '', '', { tree_data => $obj } ],
    );
 
-=head1 DESCRIPTION
+= DESCRIPTION
 
 DBD::TreeData provides a DBI driver to translate any sort of tree-based data set (encapsulated in a Perl object) into a flat set of tables,
-complete with real SQL functionality.  This module utilizes L<DBD::AnyData> to create the new tables, which uses L<SQL::Statement> to support
+complete with real SQL functionality.  This module utilizes [DBD::AnyData] to create the new tables, which uses [SQL::Statement] to support
 the SQL parsing.  (Any caveats with those modules likely applies here.)
 
-This module can be handy to translate JSON, XML, YAML, and many other tree formats to be used in class sets like L<DBIx::Class>.  Unlike
-L<DBD::AnyData>, the format of the data doesn't have to be pre-flattened, and will be spread out into multiple tables.
+This module can be handy to translate JSON, XML, YAML, and many other tree formats to be used in class sets like [DBIx::Class].  Unlike
+[DBD::AnyData], the format of the data doesn't have to be pre-flattened, and will be spread out into multiple tables.
 
-Also, this driver fully supports all of the C<*_info> methods, making it ideal to shove into modules like L<DBIx::Class::Schema::Loader>.
+Also, this driver fully supports all of the {*_info} methods, making it ideal to shove into modules like [DBIx::Class::Schema::Loader].
+(The {table_info} and {column_info} filters use REs with begin/end bounds pre-set.)
 
-=head1 CONNECT ATTRIBUTES
+= CONNECT ATTRIBUTES
 
-=head2 tree_data
+== tree_data
 
 The actual tree object.  Of course, this attribute is required.
 
-=head2 tree_table_name
+== tree_table_name
 
 The name of the starting table.  Not required, but recommended.  If not specified, defaults to 'tree_data', or the value of the driver
-DSN string (after the C<dbi:TreeData:> part).
+DSN string (after the {dbi:TreeData:} part).
 
-=head2 tree_debug
+== tree_debug
 
 Boolean.  Print debug information while translating the tree.
 
-=head2 tree_rename_tables
+== tree_rename_tables
 
 Hashref of table names.  If you don't like the name of an auto-created table, you can rename them while the database is being built.  Within
 the hashref, the keys/values are the old/new names, respectively.
 
-=head1 TRANSLATION BEHAVIOR
+= TRANSLATION BEHAVIOR
 
 The tree translation into flat tables is done using a recursive descent algorithm.  It starts with a check of the current node's reference
-type, which dictates how it interprets the children.  The goal is to create a fully L<4NF|http://en.wikipedia.org/wiki/Fourth_normal_form>
+type, which dictates how it interprets the children.  The goal is to create a fully [4NF|http://en.wikipedia.org/wiki/Fourth_normal_form]
 database from the tree.
 
 Arrays are interpreted as a list of rows, and typically get rolled up into "group" tables.  Hashes are interpreted as a list of column names
 and values.  Non-references are considered values.  Scalar refs and VStrings are de-referenced first.  Other types of refs are processed as
 best as possible, but the driver will complain.  (Code ref blocks are currently NOT executed and discarded.)
 
-Nested arrays will create nested group tables with different suffixes, like C<matrix>, C<cube>, and C<hypercube>.  If it has to go beyond
+Nested arrays will create nested group tables with different suffixes, like {matrix}, {cube}, and {hypercube}.  If it has to go beyond
 that (and you really shouldn't have structures like that), it'll start complaining (sarcastically).
 
-In almost all cases, the table name is derived from a previous key.  Table names also use L<Lingua::EN::Inflect::Phrase> to create
-pluralized names.  Primary IDs will have singular names with a C<_id> suffix.
+In almost all cases, the table name is derived from a previous key.  Table names also use [Lingua::EN::Inflect::Phrase] to create
+pluralized names.  Primary IDs will have singular names with a {_id} suffix.
 
 For example, this tree:
 
@@ -176,9 +174,9 @@ Would create the following tables:
             type_groups
                types
 
-In this case, C<address_components> has most of the columns and data, but it also has a tie to an ID of C<address_component_groups>.
+In this case, {address_components} has most of the columns and data, but it also has a tie to an ID of {address_component_groups}.
 
-Since C<types> points to an array, it will have its own dedicated table.  That table would have data like:
+Since {types} points to an array, it will have its own dedicated table.  That table would have data like:
 
    type_id │ type
    ════════╪════════════════
@@ -189,8 +187,10 @@ Since C<types> points to an array, it will have its own dedicated table.  That t
          5 │ political
        ... │ ...
 
-Most of the C<type_groups> table would be a 1:1 match.  However, the last component entry has more than one value in the C<types> array, so the
-C<type_group_id> associated to that component would have multiple entries (4 & 5).  Duplicate values are also tracked, so that IDs are reused.
+Most of the {type_groups} table would be a 1:1 match.  However, the last component entry has more than one value in the {types} array, so the
+{type_group_id} associated to that component would have multiple entries (4 & 5).  Duplicate values are also tracked, so that IDs are reused.
+
+=end wikidoc
 
 =cut
 
@@ -200,12 +200,12 @@ C<type_group_id> associated to that component would have multiple entries (4 & 5
 package   # hide from PAUSE
    DBD::TreeData::dr; # ====== DRIVER ======
 
-use sanity;
-use DBI;
-use DBD::AnyData;
+use sanity 0.94;
+use DBI 1.619;  # first version with tree_ prefix
+use DBD::AnyData 0.110;
 use parent qw(-norequire DBD::AnyData::dr);  # no such file as ::dr.pm
 
-use List::MoreUtils qw(none any uniq firstidx indexes);
+use List::AllUtils qw(none any uniq firstidx indexes);
 use Scalar::Util qw(reftype looks_like_number);
 use Lingua::EN::Inflect::Phrase qw(to_PL to_S);
 use Data::Dumper;
@@ -697,17 +697,21 @@ use DBD::AnyData;
 use parent qw(-norequire DBD::AnyData::db);  # no such file as ::db.pm
 
 use Config;
-use List::Util qw(first);
+use List::AllUtils qw(first);
 
 # Overriding the package here to add some *_info methods
 
 ### TODO: get_info ###
 
 sub table_info {
-   my $dbh = shift;
+   my ($dbh, $catalog, $schema, $table) = @_;
    my $names = [qw( TABLE_QUALIFIER TABLE_OWNER TABLE_NAME TABLE_TYPE REMARKS )];
 
-   return sponge_sth_loader($dbh, 'TABLE_INFO', $names, [ $dbh->func("get_avail_tables") ] );
+   $table = '^'.$table.'$' if length $table;
+
+   return sponge_sth_loader($dbh, 'TABLE_INFO', $names, [
+      grep { !$table || $_->[2] =~ /$table/i } $dbh->func("get_avail_tables")
+   ] );
 }
 
 sub column_info {
@@ -720,7 +724,10 @@ sub column_info {
       DOMAIN_CAT DOMAIN_SCHEM DOMAIN_NAME SCOPE_CAT SCOPE_SCHEM SCOPE_NAME MAX_CARDINALITY DTD_IDENTIFIER IS_SELF_REF
    )];
 
-   my @tables = ($table =~ /^\w+$/) ? [ undef, undef, $table, 'TABLE', 'AnyData' ] : $dbh->func("get_avail_tables");
+   $table  = '^'.$table .'$' if length $table;
+   $column = '^'.$column.'$' if length $column;
+
+   my @tables = $dbh->func("get_avail_tables");
    my @col_rows = ();
    my $tc = $dbh->{tree_columns};
 
@@ -731,10 +738,11 @@ sub column_info {
 
    foreach my $tbl (sort { $a->[2] cmp $b->[2] } @tables) {  # ->[2] = table name
       next unless ($tbl);
-      next unless (!$table || /$table/i ~~ $tbl);
+      next unless (!$table || $tbl->[2] =~ /$table/i);
 
       my $id = 0;
       foreach my $col ( @{$tc->{names}{$tbl->[2]}} ) {
+         next unless (!$column || $col =~ /$column/i);
          my $ti = $types{ $id ? uc($tc->{types}{$col}) : 'PID' };
          my $can_null = $id && $tc->{nulls}{$col} || 0;
 
