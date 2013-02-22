@@ -48,12 +48,11 @@ sub pmver {
     return sprintf('%-45s => %-10s%-15s%s', $module, $pmver, $wanted, "\n");
 }
 
-eval { $v .= pmver('DBD::AnyData','any version') };
-eval { $v .= pmver('DBI','any version') };
+eval { $v .= pmver('DBD::AnyData','0.110') };
+eval { $v .= pmver('DBI','1.619') };
 eval { $v .= pmver('Data::Dumper','2.122') };
 eval { $v .= pmver('Lingua::EN::Inflect::Phrase','0.01') };
-eval { $v .= pmver('List::MoreUtils','0.23') };
-eval { $v .= pmver('List::Util','1.20') };
+eval { $v .= pmver('List::AllUtils','0.01') };
 eval { $v .= pmver('Pod::Coverage::TrustPod','any version') };
 eval { $v .= pmver('Scalar::Util','1.20') };
 eval { $v .= pmver('Test::CheckDeps','0.002') };
@@ -62,7 +61,7 @@ eval { $v .= pmver('Test::Pod','1.41') };
 eval { $v .= pmver('Test::Pod::Coverage','1.08') };
 eval { $v .= pmver('Test::UseAllModules','0.10') };
 eval { $v .= pmver('parent','0.220') };
-eval { $v .= pmver('sanity','0.91') };
+eval { $v .= pmver('sanity','0.94') };
 eval { $v .= pmver('version','0.9901') };
 
 

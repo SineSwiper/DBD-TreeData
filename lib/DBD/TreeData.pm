@@ -63,12 +63,12 @@ sub CLONE {
 package   # hide from PAUSE
    DBD::TreeData::dr; # ====== DRIVER ======
 
-use sanity;
-use DBI;
-use DBD::AnyData;
+use sanity 0.94;
+use DBI 1.619;  # first version with tree_ prefix
+use DBD::AnyData 0.110;
 use parent qw(-norequire DBD::AnyData::dr);  # no such file as ::dr.pm
 
-use List::MoreUtils qw(none any uniq firstidx indexes);
+use List::AllUtils qw(none any uniq firstidx indexes);
 use Scalar::Util qw(reftype looks_like_number);
 use Lingua::EN::Inflect::Phrase qw(to_PL to_S);
 use Data::Dumper;
@@ -560,7 +560,7 @@ use DBD::AnyData;
 use parent qw(-norequire DBD::AnyData::db);  # no such file as ::db.pm
 
 use Config;
-use List::Util qw(first);
+use List::AllUtils qw(first);
 
 # Overriding the package here to add some *_info methods
 

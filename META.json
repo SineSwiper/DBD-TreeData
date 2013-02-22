@@ -32,16 +32,15 @@
       },
       "runtime" : {
          "requires" : {
-            "DBD::AnyData" : "0",
-            "DBI" : "0",
+            "DBD::AnyData" : "0.110",
+            "DBI" : "1.619",
             "Data::Dumper" : "2.122",
             "Lingua::EN::Inflect::Phrase" : "0.01",
-            "List::MoreUtils" : "0.23",
-            "List::Util" : "1.20",
+            "List::AllUtils" : "0.01",
             "Scalar::Util" : "1.20",
             "parent" : "0.220",
             "perl" : "5.010",
-            "sanity" : "0.91"
+            "sanity" : "0.94"
          }
       },
       "test" : {
