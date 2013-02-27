@@ -190,6 +190,14 @@ Since {types} points to an array, it will have its own dedicated table.  That ta
 Most of the {type_groups} table would be a 1:1 match.  However, the last component entry has more than one value in the {types} array, so the
 {type_group_id} associated to that component would have multiple entries (4 & 5).  Duplicate values are also tracked, so that IDs are reused.
 
+= CAVEATS
+
+== DBI / DBD::AnyData Conflict
+
+As of the time of this writing, the latest version of [DBI] (1.623) and the latest version of [DBD::AnyData] (0.110) do not work together.
+Since TreeData relies on [DBD::AnyData] for table creation, you will need to downgrade to [DBI] 1.622 to use this driver, until a new
+version of [DBD::AnyData] comes out.
+
 =end wikidoc
 
 =cut
