@@ -14,6 +14,7 @@ my %WriteMakefileArgs = (
   "BUILD_REQUIRES" => {
     "Test::CheckDeps" => "0.002",
     "Test::More" => "0.88",
+    "Test::Most" => "0.01",
     "Test::UseAllModules" => "0.10"
   },
   "CONFIGURE_REQUIRES" => {},

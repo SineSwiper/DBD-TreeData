@@ -952,6 +952,14 @@ Since C<<< types >>> points to an array, it will have its own dedicated table.  
 Most of the C<<< type_groups >>> table would be a 1:1 match.  However, the last component entry has more than one value in the C<<< types >>> array, so the
 C<<< type_group_id >>> associated to that component would have multiple entries (4 & 5).  Duplicate values are also tracked, so that IDs are reused.
 
+=head1 CAVEATS
+
+=head2 DBI E<sol> DBD::AnyData Conflict
+
+As of the time of this writing, the latest version of L<DBI> (1.623) and the latest version of L<DBD::AnyData> (0.110) do not work together.
+Since TreeData relies on L<DBD::AnyData> for table creation, you will need to downgrade to L<DBI> 1.622 to use this driver, until a new
+version of L<DBD::AnyData> comes out.
+
 =head1 AVAILABILITY
 
 The project homepage is L<https://github.com/SineSwiper/DBD-TreeData/wiki>.

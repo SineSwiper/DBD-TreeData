@@ -56,6 +56,7 @@ eval { $v .= pmver('List::AllUtils','0.01') };
 eval { $v .= pmver('Scalar::Util','1.20') };
 eval { $v .= pmver('Test::CheckDeps','0.002') };
 eval { $v .= pmver('Test::More','0.88') };
+eval { $v .= pmver('Test::Most','0.01') };
 eval { $v .= pmver('Test::Pod','1.41') };
 eval { $v .= pmver('Test::UseAllModules','0.10') };
 eval { $v .= pmver('parent','0.220') };
